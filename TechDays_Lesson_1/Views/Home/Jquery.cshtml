@@ -1,0 +1,112 @@
+﻿@model AddAdCommand
+<html>
+    <head>                
+        <script type="text/javascript" src="@Url.Content("~/Scripts/jquery-1.8.3.min.js")"> </script>                
+        <script>
+            $(document).ready(function() {
+                
+                var initAdTable = function() {
+
+                    $.get('@Url.Action("Fetch", "Ad")', function(result) {
+                        $('#tbodyAdTable').empty();
+                        $(result.data).each(function() {
+                            var tr = $("<tr>")
+                                .append($('<td>').html(this.Name))
+                                .append($('<td>').html(this.Root))
+                                .append($('<td>').html(this.Sub));
+
+                            $('#tbodyAdTable').append(tr);
+                        });
+                    });
+
+                };
+
+                //#region Root drop down
+
+                $('#Root').change(function() {
+                    var self = this;
+                    $.get('@Url.Action("FetchSub", "Category")', { root: $(self).val() }, function (result) {
+                        $('#Sub').empty();
+                        $(result.data).each(function() {
+                            var option = $('<option>').attr({
+                                value : this.Value
+                            }).text(this.Text);
+                            $('#Sub').append(option);
+                        });
+                    });
+                });
+
+                $.get('@Url.Action("FetchRoot", "Category")', function(result) {
+                    $('#Root').empty();
+                    $(result.data).each(function() {
+                        var option = $('<option>').attr({
+                            value : this.Value
+                        }).text(this.Text);
+                        $('#Root').append(option);
+                    });
+                    $('#Root').change();
+                });
+
+                //#endregion
+
+                $('#btnSave').click(function() {
+                    $.post('@Url.Action("Add", "Ad")', {
+                            name : $('#Name').val(),
+                            root : $('#Root').val(),
+                            sub : $('#Sub').val()
+                        }, function() {
+                            initAdTable();
+                        });
+                });
+
+                $('#btnClear').click(function() {
+                    $('#Root,#Name')
+                        .val('')
+                        .change();
+                });
+
+                $('#btnRemoveAll').click(function() {
+                    $.post('@Url.Action("RemoveAll", "Ad")', function() {
+                        initAdTable();
+                    });
+                });
+
+                initAdTable();
+            });
+        </script>
+    </head>    
+    <body>
+        
+        <div>
+            <label>
+                Name
+            </label>
+            @Html.TextBoxFor(r => r.Name)
+        </div>
+        <div>
+            <label>Root</label>
+            @Html.DropDownListFor(r => r.Root, new SelectList(new string[0]))
+        </div>
+        <div>
+            <label>Sub</label>
+            @Html.DropDownListFor(r => r.Sub, new SelectList(new string[0]))
+        </div>
+        <button id="btnClear">Clear form</button>
+        <button id="btnSave">Save</button>
+        
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Root</th>
+                        <th>Sub</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyAdTable">                    
+                </tbody>
+            </table>
+            <button id="btnRemoveAll">Remove all data</button>
+        </div>
+    </body>    
+</html>
