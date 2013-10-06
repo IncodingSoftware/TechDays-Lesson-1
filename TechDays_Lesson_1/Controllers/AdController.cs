@@ -3,6 +3,7 @@
     #region << Using >>
 
     using System.Collections.Generic;
+    using System.Linq;
     using System.Web.Mvc;
     using Incoding.MvcContrib;
     using TechDays_Lesson_1.Models;
@@ -24,8 +25,8 @@
         {
             ads.Add(new AdVm
                         {
-                                Name = command.Name, 
-                                Root = command.Root, 
+                                Name = command.Name,
+                                Root = command.Root,
                                 Sub = command.Sub
                         });
             return IncodingResult.Success();
@@ -40,9 +41,10 @@
         }
 
         [HttpGet]
-        public ActionResult Fetch()
+        public ActionResult Fetch(SearchAdQuery query)
         {
-            return IncodingResult.Success(ads);
+            return IncodingResult.Success(ads.Where(r => string.IsNullOrWhiteSpace(query.Root) || r.Root == query.Root)
+                                             .Where(r => string.IsNullOrWhiteSpace(query.Sub) || r.Sub == query.Sub));
         }
 
         [HttpPost]

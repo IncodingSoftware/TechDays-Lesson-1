@@ -6,9 +6,132 @@
         <script type="text/javascript" src="@Url.Content("~/Scripts/jquery-1.8.3.min.js")"> </script>      
         <script type="text/javascript" src="@Url.Content("~/Scripts/underscore.min.js")"> </script>      
         <script type="text/javascript" src="@Url.Content("~/Scripts/mustache.js")"> </script>              
+        <script type="text/javascript" src="@Url.Content("~/Scripts/jquery.history.js")"> </script>              
         <script type="text/javascript" src="@Url.Content("~/Scripts/incoding.framework.js")"> </script>      
     </head>
     <body>
-   
+        
+        @{
+            string containerId = Guid.NewGuid().ToString();
+            string tmplId = Guid.NewGuid().ToString();
+            using (var template = Html.Incoding().ScriptTemplate<KeyValueVm>(tmplId))
+            {
+                using (var each = template.ForEach())
+                {
+                    <option value="@each.For(r => r.Value)">
+                        @each.For(r => r.Text)
+                    </option>
+                }
+            }
+        }
+
+        <div>
+            <label>Name</label>
+            @Html.TextBoxFor(r => r.Name)
+        </div>
+        <div>
+            <label>Root</label>
+            @Html.DropDownListFor(r => r.Root, new SelectList(new string[0]), Html.When(JqueryBind.InitIncoding)
+                                                                                  .Do()
+                                                                                  .AjaxGet(Url.Action("FetchRoot", "Category"))
+                                                                                  .OnSuccess(dsl =>
+                                                                                                 {
+                                                                                                     dsl.Self().Core().Insert.WithTemplate(Selector.Jquery.Id(tmplId)).Html();
+                                                                                                     dsl.Self().Core().Trigger.Invoke(JqueryBind.Change);
+                                                                                                 })
+                                                                                  .When(JqueryBind.Change)
+                                                                                  .Do()
+                                                                                  .Direct()
+                                                                                  .OnSuccess(dsl => dsl.With(r => r.Id<AddAdCommand>(s => s.Sub)).Core().Trigger.Incoding())
+                                                                                  .AsHtmlAttributes())
+        </div>
+        <div>
+            <label>Sub</label>
+            @Html.DropDownListFor(r => r.Sub, new SelectList(new string[0]), Html.When(JqueryBind.None)
+                                                                                 .Do()
+                                                                                 .AjaxGet(Url.Action("FetchSub", "Category", new
+                                                                                                                                 {
+                                                                                                                                         root = Selector.Jquery.Id<AddAdCommand>(r => r.Root)
+                                                                                                                                 }))
+                                                                                 .OnSuccess(dsl => dsl.Self().Core().Insert.WithTemplate(Selector.Jquery.Id(tmplId)).Html())
+                                                                                 .AsHtmlAttributes())
+        </div>
+        <div>
+            @(Html.When(JqueryBind.Click)
+                  .Do()
+                  .Direct()
+                  .OnSuccess(dsl => dsl.With(r => r.Id<AddAdCommand>(s => s.Name)
+                                                   .Add(selector => selector.Id<AddAdCommand>(s => s.Root)))
+                                       .Behaviors(inDsl =>
+                                                      {
+                                                          inDsl.Core().JQuery.Attributes.Val("");
+                                                          inDsl.Core().Trigger.Invoke(JqueryBind.Change);
+                                                      }))
+                  .AsHtmlAttributes()
+                  .ToButton("Clear"))
+            @(Html.When(JqueryBind.Click)
+                  .Do()
+                  .AjaxPost(Url.Action("Add", "Ad", new AddAdCommand
+                                                        {
+                                                                Name = Selector.Jquery.Id<AddAdCommand>(r => r.Name),
+                                                                Root = Selector.Jquery.Id<AddAdCommand>(r => r.Root),
+                                                                Sub = Selector.Jquery.Id<AddAdCommand>(r => r.Sub),
+                                                        }))
+                  .OnSuccess(dsl => dsl.With(r => r.Id(containerId)).Core().Trigger.Incoding())
+                  .AsHtmlAttributes()
+                  .ToButton("Add")) 
+        </div>
+        
+        @{
+            string tabelTmplId = Guid.NewGuid().ToString();
+            using (var template = Html.Incoding().ScriptTemplate<AdVm>(tabelTmplId))
+            {
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Root</th>
+                            <th>Sub</th>
+                            <th></th>
+                        </tr>
+                    </thead>       
+                    <tbody>
+                        @using (var each = template.ForEach())
+                        {
+                            <tr>
+                                <td>@each.For(r => r.Name)</td>
+                                <td>@each.For(r => r.Root)</td>
+                                <td>@each.For(r => r.Sub)</td>
+                                <td>
+                                    @(Html.When(JqueryBind.Click)
+                                          .DoWithPreventDefault()
+                                          .AjaxPost(HttpUtility.UrlDecode(Url.Action("Del", "Ad", new { name = each.For(r => r.Name) })))
+                                          .OnBegin(dsl => dsl.Self().Core().Break.If(builder => builder.Not.Confirm("Are sure delete {0}".F(each.For(r => r.Name)))))
+                                          .OnSuccess(dsl => dsl.With(r => r.Self().Closest(selector => selector.Tag(HtmlTag.Tr))).Core().JQuery.Manipulation.Remove())
+                                          .AsHtmlAttributes()
+                                          .ToLink("Del"))
+                                </td>
+                            </tr>
+                        }
+                    </tbody>            
+                </table>
+            }
+        }
+
+
+        @(Html.When(JqueryBind.InitIncoding | JqueryBind.IncChangeUrl)
+              .Do()
+              .AjaxHashGet(Url.Action("Fetch", "Ad"))
+              .OnSuccess(dsl => dsl.Self().Core().Insert.WithTemplate(Selector.Jquery.Id(tabelTmplId)).Html())
+              .AsHtmlAttributes(new { id = containerId })
+              .ToDiv())
+        
+        
+        @(Html.When(JqueryBind.Click)
+              .Do()
+              .AjaxPost(Url.Action("RemoveAll", "Ad"))
+              .OnSuccess(dsl => dsl.With(r => r.Id(containerId)).Core().Trigger.Incoding())
+              .AsHtmlAttributes()
+              .ToButton("Remove All"))
     </body>
 </html>

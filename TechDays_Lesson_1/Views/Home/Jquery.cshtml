@@ -21,11 +21,8 @@
 
                 };
 
-                //#region Root drop down
-
-                $('#Root').change(function() {
-                    var self = this;
-                    $.get('@Url.Action("FetchSub", "Category")', { root: $(self).val() }, function (result) {
+                $('#Root').change(function() {                    
+                    $.get('@Url.Action("FetchSub", "Category")', { root: $('#Root').val() }, function (result) {
                         $('#Sub').empty();
                         $(result.data).each(function() {
                             var option = $('<option>').attr({
@@ -35,7 +32,7 @@
                         });
                     });
                 });
-
+                                
                 $.get('@Url.Action("FetchRoot", "Category")', function(result) {
                     $('#Root').empty();
                     $(result.data).each(function() {
@@ -47,9 +44,8 @@
                     $('#Root').change();
                 });
 
-                //#endregion
 
-                $('#btnSave').click(function() {
+                $('#btnAdd').click(function () {
                     $.post('@Url.Action("Add", "Ad")', {
                             name : $('#Name').val(),
                             root : $('#Root').val(),
@@ -92,7 +88,7 @@
             @Html.DropDownListFor(r => r.Sub, new SelectList(new string[0]))
         </div>
         <button id="btnClear">Clear form</button>
-        <button id="btnSave">Save</button>
+        <button id="btnAdd">Add</button>
         
         <div>
             <table>
